@@ -108,7 +108,9 @@
   let leftWall = null;
   let rightWall = null;
   let worldScale = 1;
+  let playLeft = 0;
   let playTop = 0;
+  let playSize = BASE_WIDTH;
   let playHeight = BASE_HEIGHT;
   let bucketWidth = BUCKET_WIDTH_BASE;
   let bucketInset = 0;
@@ -156,8 +158,8 @@
   }
 
   function updateScale(hasFruits) {
-    const widthScale = width / BASE_WIDTH;
-    const heightScale = height / BASE_HEIGHT;
+    const widthScale = playSize / BASE_WIDTH;
+    const heightScale = playSize / BASE_HEIGHT;
     const nextScale = Math.min(heightScale, widthScale);
     if (!Number.isFinite(nextScale) || nextScale <= 0) {
       return false;
@@ -181,13 +183,13 @@
     }
 
     wallThickness = Math.max(12, Math.round(WALL_THICKNESS_BASE * widthScale));
-    const maxBucketWidth = Math.max(1, width - wallThickness * 2 - 8);
+    const maxBucketWidth = Math.max(1, playSize - wallThickness * 2 - 8);
     const minBucketWidth = Math.min(
       maxBucketWidth,
       maxFruitRadius * 2 + Math.round(24 * worldScale)
     );
     bucketWidth = clamp(Math.round(BUCKET_WIDTH_BASE * widthScale), minBucketWidth, maxBucketWidth);
-    bucketInset = Math.max(0, Math.round((width - bucketWidth) / 2));
+    bucketInset = Math.max(0, Math.round((playSize - bucketWidth) / 2));
 
     updateNextMaxSize();
 
@@ -195,8 +197,10 @@
   }
 
   function updatePlayArea() {
-    playHeight = Math.min(height, Math.round(BASE_HEIGHT * worldScale));
-    playTop = Math.max(0, Math.round(height - playHeight));
+    playSize = Math.max(1, Math.min(width, height));
+    playLeft = Math.round((width - playSize) / 2);
+    playTop = Math.round((height - playSize) / 2);
+    playHeight = playSize;
   }
 
   function getFloorY() {
@@ -210,8 +214,10 @@
   }
 
   function getHorizontalBounds(radius) {
-    const leftEdge = leftWall ? leftWall.bounds.max.x : bucketInset;
-    const rightEdge = rightWall ? rightWall.bounds.min.x : width - bucketInset;
+    const leftEdge = leftWall ? leftWall.bounds.max.x : playLeft + bucketInset;
+    const rightEdge = rightWall
+      ? rightWall.bounds.min.x
+      : playLeft + playSize - bucketInset;
     return {
       minX: leftEdge + radius,
       maxX: rightEdge - radius,
@@ -527,16 +533,18 @@
     const thickness = wallThickness;
     const floorY = getFloorY();
     const innerWidth = Math.max(1, bucketWidth);
+    const centerX = playLeft + playSize / 2;
+    const centerY = playTop + playSize / 2;
     const wallOffset = (innerWidth + thickness) / 2;
-    const leftX = width / 2 - wallOffset;
-    const rightX = width / 2 + wallOffset;
+    const leftX = centerX - wallOffset;
+    const rightX = centerX + wallOffset;
     const wallStyle = {
       fillStyle: "#ffe4b5",
       strokeStyle: "#f3b15f",
       lineWidth: 2,
     };
     const floor = Bodies.rectangle(
-      width / 2,
+      centerX,
       floorY + thickness / 2,
       innerWidth + thickness * 2,
       thickness,
@@ -546,12 +554,12 @@
       }
     );
 
-    const left = Bodies.rectangle(leftX, height / 2, thickness, height * 2, {
+    const left = Bodies.rectangle(leftX, centerY, thickness, playSize * 2, {
       isStatic: true,
       render: wallStyle,
     });
 
-    const right = Bodies.rectangle(rightX, height / 2, thickness, height * 2, {
+    const right = Bodies.rectangle(rightX, centerY, thickness, playSize * 2, {
       isStatic: true,
       render: wallStyle,
     });
@@ -570,19 +578,18 @@
       requestAnimationFrame(resize);
       return;
     }
-    const size = Math.max(1, Math.min(nextWidth, nextHeight));
-    width = size;
-    height = size;
+    width = Math.max(1, nextWidth);
+    height = Math.max(1, nextHeight);
 
     Render.setSize(render, width, height);
     Render.setPixelRatio(render, window.devicePixelRatio || 1);
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
+    updatePlayArea();
     const hasFruits = Composite.allBodies(world).some((body) => body.isFruit);
     const needsReset = updateScale(hasFruits);
     updateNextMaxSize();
-    updatePlayArea();
     updateBounds();
     if (needsReset && Composite.allBodies(world).some((body) => body.isFruit)) {
       resetGame();
