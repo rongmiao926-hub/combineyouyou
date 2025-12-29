@@ -45,24 +45,25 @@
 
   const START_MAX_INDEX = 3;
   const DROP_COOLDOWN = 260;
-  const TAP_MOVE_THRESHOLD = 10;
+  const TAP_MOVE_THRESHOLD = 6;
   const TAP_TIME_MAX = 260;
   const BEST_KEY = "youzi-best-score";
   const AD_DURATION = 5;
   const AD_PENDING_KEY = "youyou-ad-pending";
   const AD_END_KEY = "youyou-ad-end";
   const BASE_HEIGHT = 520;
-  const BASE_WIDTH = 360;
+  const BASE_WIDTH = 390;
   const BASE_GRAVITY = 1.35;
   const SCALE_EPSILON = 0.02;
   const SCALE_RESET_THRESHOLD = 0.1;
-  const BUCKET_WIDTH_BASE = 320;
-  const FLOOR_INSET_BASE = 36;
-  const WALL_THICKNESS_BASE = 36;
+  const BUCKET_WIDTH_BASE = 330;
+  const FLOOR_INSET_BASE = 34;
+  const WALL_THICKNESS_BASE = 28;
   const DROP_GAP_BASE = 36;
   const DROP_PADDING_BASE = 8;
   const MIN_TOPLINE_BASE = 56;
   const OVERFLOW_GRACE = 900;
+  const MAX_FRUIT_BONUS = 600;
 
   const engine = Engine.create();
   const world = engine.world;
@@ -101,6 +102,7 @@
   let lastDropAt = 0;
   let dangerStart = null;
   let isGameOver = false;
+  let endReason = null;
   let isIntroOpen = Boolean(intro) && !intro.hasAttribute("hidden");
   let bounds = [];
   let leftWall = null;
@@ -154,7 +156,9 @@
   }
 
   function updateScale(hasFruits) {
-    const nextScale = Math.min(height / BASE_HEIGHT, width / BASE_WIDTH);
+    const widthScale = width / BASE_WIDTH;
+    const heightScale = height / BASE_HEIGHT;
+    const nextScale = Math.min(heightScale, widthScale);
     if (!Number.isFinite(nextScale) || nextScale <= 0) {
       return false;
     }
@@ -169,7 +173,7 @@
     }
 
     worldScale = nextScale;
-    wallThickness = Math.max(12, Math.round(WALL_THICKNESS_BASE * worldScale));
+    wallThickness = Math.max(12, Math.round(WALL_THICKNESS_BASE * widthScale));
     dropGap = Math.max(16, Math.round(DROP_GAP_BASE * worldScale));
     dropPadding = Math.max(4, Math.round(DROP_PADDING_BASE * worldScale));
     minTopLine = Math.max(40, Math.round(MIN_TOPLINE_BASE * worldScale));
@@ -182,7 +186,7 @@
       maxBucketWidth,
       maxFruitRadius * 2 + Math.round(24 * worldScale)
     );
-    bucketWidth = clamp(Math.round(BUCKET_WIDTH_BASE * worldScale), minBucketWidth, maxBucketWidth);
+    bucketWidth = clamp(Math.round(BUCKET_WIDTH_BASE * widthScale), minBucketWidth, maxBucketWidth);
     bucketInset = Math.max(0, Math.round((width - bucketWidth) / 2));
 
     world.gravity.y = BASE_GRAVITY * worldScale;
@@ -272,6 +276,11 @@
 
   function startAdCountdown() {
     if (isAdPlaying) {
+      return;
+    }
+
+    if (endReason === "max") {
+      resetGame();
       return;
     }
 
@@ -457,8 +466,13 @@
 
   function resetGame() {
     isGameOver = false;
+    endReason = null;
     overlay.hidden = true;
     resetSharePreview();
+    if (adBlock) {
+      adBlock.hidden = true;
+    }
+    setAdControlsDisabled(false);
     score = 0;
     updateScore();
     dangerStart = null;
@@ -474,16 +488,26 @@
     updateNextUI();
   }
 
-  function endGame() {
+  function endGame(reason = "overflow") {
     if (isGameOver) {
       return;
     }
 
     isGameOver = true;
+    endReason = reason;
     overlay.hidden = false;
     resetSharePreview();
-    localStorage.setItem(AD_PENDING_KEY, "1");
-    localStorage.removeItem(AD_END_KEY);
+    if (reason === "overflow") {
+      localStorage.setItem(AD_PENDING_KEY, "1");
+      localStorage.removeItem(AD_END_KEY);
+    } else {
+      localStorage.removeItem(AD_PENDING_KEY);
+      localStorage.removeItem(AD_END_KEY);
+      if (adBlock) {
+        adBlock.hidden = true;
+      }
+      setAdControlsDisabled(false);
+    }
   }
 
   function closeIntro() {
@@ -642,11 +666,18 @@
       canvas.releasePointerCapture(activePointerId);
     }
 
+    const endX = pointerX(event);
+    const endY = pointerY(event);
+    const dx = endX - pointerStartX;
+    const dy = endY - pointerStartY;
+    if (Math.hypot(dx, dy) > TAP_MOVE_THRESHOLD) {
+      pointerMoved = true;
+    }
     const elapsed = performance.now() - pointerStartAt;
     const shouldDrop =
       event.pointerType !== "touch" || (!pointerMoved && elapsed < TAP_TIME_MAX);
     activePointerId = null;
-    currentX = pointerX(event);
+    currentX = endX;
     if (shouldDrop) {
       dropCurrent();
     }
@@ -767,11 +798,13 @@
       World.add(world, merged);
 
       score += FRUITS[next].score;
-      updateScore();
-
       if (next === FRUITS.length - 1) {
-        endGame();
+        score += MAX_FRUIT_BONUS;
+        updateScore();
+        endGame("max");
+        return;
       }
+      updateScore();
     });
   });
 
