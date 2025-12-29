@@ -44,6 +44,10 @@
           <div class="overlay-card">
             <h2>游戏结束</h2>
             <p>你的分数是 <strong id="finalScore">0</strong></p>
+            <div class="ad-block" id="adBlock" hidden>
+              <img src="ad-placeholder.svg" alt="五秒广告占位">
+              <p class="ad-countdown">广告剩余 <span id="adTimer">5</span>s</p>
+            </div>
             <div class="overlay-actions">
               <button id="shareBtn" type="button">生成分享图</button>
               <button id="restart2" type="button">再来一次</button>
@@ -59,8 +63,7 @@
             <button class="intro-close" id="introClose" type="button" aria-label="关闭提示">×</button>
             <h2 id="introTitle">玩法提示</h2>
             <ul>
-              <li>点击或轻点放下水果。</li>
-              <li>左右移动指针来调整落点。</li>
+              <li>拖动屏幕调整落点，轻点放下水果。</li>
               <li>相同水果相撞会合成更大的一颗。</li>
               <li>堆叠超过虚线会触发游戏结束。</li>
               <li>键盘：方向键移动，空格键落下。</li>

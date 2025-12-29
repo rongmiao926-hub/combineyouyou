@@ -22,6 +22,8 @@
   const shareBtn = document.getElementById("shareBtn");
   const sharePreview = document.getElementById("sharePreview");
   const shareImage = document.getElementById("shareImage");
+  const adBlock = document.getElementById("adBlock");
+  const adTimer = document.getElementById("adTimer");
   const intro = document.getElementById("intro");
   const introClose = document.getElementById("introClose");
   const introStart = document.getElementById("introStart");
@@ -43,12 +45,19 @@
 
   const START_MAX_INDEX = 3;
   const DROP_COOLDOWN = 260;
+  const TAP_MOVE_THRESHOLD = 10;
+  const TAP_TIME_MAX = 260;
   const BEST_KEY = "youzi-best-score";
-  const BASE_HEIGHT = 600;
+  const AD_DURATION = 5;
+  const AD_PENDING_KEY = "youyou-ad-pending";
+  const AD_END_KEY = "youyou-ad-end";
+  const BASE_HEIGHT = 520;
+  const BASE_WIDTH = 360;
   const BASE_GRAVITY = 1.35;
   const SCALE_EPSILON = 0.02;
   const SCALE_RESET_THRESHOLD = 0.1;
-  const BUCKET_INSET_BASE = 42;
+  const BUCKET_WIDTH_BASE = 320;
+  const FLOOR_INSET_BASE = 36;
   const WALL_THICKNESS_BASE = 36;
   const DROP_GAP_BASE = 36;
   const DROP_PADDING_BASE = 8;
@@ -97,13 +106,25 @@
   let leftWall = null;
   let rightWall = null;
   let worldScale = 1;
-  let bucketInset = BUCKET_INSET_BASE;
+  let playTop = 0;
+  let playHeight = BASE_HEIGHT;
+  let bucketWidth = BUCKET_WIDTH_BASE;
+  let bucketInset = 0;
+  let floorInset = FLOOR_INSET_BASE;
   let wallThickness = WALL_THICKNESS_BASE;
   let dropGap = DROP_GAP_BASE;
   let dropPadding = DROP_PADDING_BASE;
   let minTopLine = MIN_TOPLINE_BASE;
   let fruitRadii = FRUITS.map((def) => def.baseRadius);
   let maxFruitRadius = Math.max(...fruitRadii);
+  let activePointerId = null;
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  let pointerStartAt = 0;
+  let pointerMoved = false;
+  let isAdPlaying = false;
+  let adTimerId = null;
+  let adEndsAt = 0;
 
   function randomStartIndex() {
     return Math.floor(Math.random() * (START_MAX_INDEX + 1));
@@ -133,7 +154,7 @@
   }
 
   function updateScale(hasFruits) {
-    const nextScale = height / BASE_HEIGHT;
+    const nextScale = Math.min(height / BASE_HEIGHT, width / BASE_WIDTH);
     if (!Number.isFinite(nextScale) || nextScale <= 0) {
       return false;
     }
@@ -148,21 +169,35 @@
     }
 
     worldScale = nextScale;
-    bucketInset = Math.max(16, Math.round(BUCKET_INSET_BASE * worldScale));
     wallThickness = Math.max(12, Math.round(WALL_THICKNESS_BASE * worldScale));
     dropGap = Math.max(16, Math.round(DROP_GAP_BASE * worldScale));
     dropPadding = Math.max(4, Math.round(DROP_PADDING_BASE * worldScale));
     minTopLine = Math.max(40, Math.round(MIN_TOPLINE_BASE * worldScale));
+    floorInset = Math.max(20, Math.round(FLOOR_INSET_BASE * worldScale));
     fruitRadii = FRUITS.map((def) => Math.max(8, Math.round(def.baseRadius * worldScale)));
     maxFruitRadius = Math.max(...fruitRadii);
+
+    const maxBucketWidth = Math.max(1, width - wallThickness * 2 - 8);
+    const minBucketWidth = Math.min(
+      maxBucketWidth,
+      maxFruitRadius * 2 + Math.round(24 * worldScale)
+    );
+    bucketWidth = clamp(Math.round(BUCKET_WIDTH_BASE * worldScale), minBucketWidth, maxBucketWidth);
+    bucketInset = Math.max(0, Math.round((width - bucketWidth) / 2));
+
     world.gravity.y = BASE_GRAVITY * worldScale;
     updateNextMaxSize();
 
     return Boolean(hasFruits) && delta >= SCALE_RESET_THRESHOLD;
   }
 
+  function updatePlayArea() {
+    playHeight = Math.min(height, Math.round(BASE_HEIGHT * worldScale));
+    playTop = Math.max(0, Math.round(height - playHeight));
+  }
+
   function getFloorY() {
-    return height - bucketInset;
+    return playTop + playHeight - floorInset;
   }
 
   function getDropY(radius) {
@@ -188,6 +223,79 @@
     }
     bestEl.textContent = bestScore.toString();
     finalScoreEl.textContent = score.toString();
+  }
+
+  function setAdControlsDisabled(disabled) {
+    if (restartBtn) {
+      restartBtn.disabled = disabled;
+    }
+    if (restartBtn2) {
+      restartBtn2.disabled = disabled;
+    }
+    if (shareBtn) {
+      shareBtn.disabled = disabled;
+    }
+  }
+
+  function clearAdTimer() {
+    if (adTimerId) {
+      window.clearInterval(adTimerId);
+      adTimerId = null;
+    }
+  }
+
+  function finishAd() {
+    clearAdTimer();
+    isAdPlaying = false;
+    localStorage.removeItem(AD_PENDING_KEY);
+    localStorage.removeItem(AD_END_KEY);
+    if (adBlock) {
+      adBlock.hidden = true;
+    }
+    setAdControlsDisabled(false);
+    resetGame();
+  }
+
+  function updateAdCountdown() {
+    if (!adTimer) {
+      finishAd();
+      return;
+    }
+
+    const remainingMs = adEndsAt - Date.now();
+    const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+    adTimer.textContent = remaining.toString();
+    if (remaining <= 0) {
+      finishAd();
+    }
+  }
+
+  function startAdCountdown() {
+    if (isAdPlaying) {
+      return;
+    }
+
+    if (!adBlock || !adTimer) {
+      resetGame();
+      return;
+    }
+
+    isAdPlaying = true;
+    isGameOver = true;
+    overlay.hidden = false;
+    resetSharePreview();
+    setAdControlsDisabled(true);
+    adBlock.hidden = false;
+
+    const now = Date.now();
+    const storedEndsAt = Number(localStorage.getItem(AD_END_KEY)) || 0;
+    adEndsAt = storedEndsAt > now ? storedEndsAt : now + AD_DURATION * 1000;
+    localStorage.setItem(AD_PENDING_KEY, "1");
+    localStorage.setItem(AD_END_KEY, adEndsAt.toString());
+
+    clearAdTimer();
+    updateAdCountdown();
+    adTimerId = window.setInterval(updateAdCountdown, 200);
   }
 
   function resetSharePreview() {
@@ -374,6 +482,8 @@
     isGameOver = true;
     overlay.hidden = false;
     resetSharePreview();
+    localStorage.setItem(AD_PENDING_KEY, "1");
+    localStorage.removeItem(AD_END_KEY);
   }
 
   function closeIntro() {
@@ -392,9 +502,11 @@
     }
 
     const thickness = wallThickness;
-    const inset = bucketInset;
-    const floorY = height - inset;
-    const innerWidth = Math.max(1, width - inset * 2);
+    const floorY = getFloorY();
+    const innerWidth = Math.max(1, bucketWidth);
+    const wallOffset = (innerWidth + thickness) / 2;
+    const leftX = width / 2 - wallOffset;
+    const rightX = width / 2 + wallOffset;
     const wallStyle = {
       fillStyle: "#ffe4b5",
       strokeStyle: "#f3b15f",
@@ -411,27 +523,15 @@
       }
     );
 
-    const left = Bodies.rectangle(
-      inset / 2,
-      height / 2,
-      thickness,
-      height * 2,
-      {
-        isStatic: true,
-        render: wallStyle,
-      }
-    );
+    const left = Bodies.rectangle(leftX, height / 2, thickness, height * 2, {
+      isStatic: true,
+      render: wallStyle,
+    });
 
-    const right = Bodies.rectangle(
-      width - inset / 2,
-      height / 2,
-      thickness,
-      height * 2,
-      {
-        isStatic: true,
-        render: wallStyle,
-      }
-    );
+    const right = Bodies.rectangle(rightX, height / 2, thickness, height * 2, {
+      isStatic: true,
+      render: wallStyle,
+    });
 
     leftWall = left;
     rightWall = right;
@@ -458,6 +558,7 @@
     const hasFruits = Composite.allBodies(world).some((body) => body.isFruit);
     const needsReset = updateScale(hasFruits);
     updateNextMaxSize();
+    updatePlayArea();
     updateBounds();
     if (needsReset && Composite.allBodies(world).some((body) => body.isFruit)) {
       resetGame();
@@ -466,7 +567,12 @@
     const floorY = getFloorY();
     const maxStartRadius = getFruitRadius(START_MAX_INDEX);
     const maxTopLine = floorY - maxStartRadius - dropGap - dropPadding;
-    topLineY = clamp(height * 0.14, minTopLine, Math.max(minTopLine, maxTopLine));
+    const targetTopLine = playTop + playHeight * 0.14;
+    topLineY = clamp(
+      Math.round(targetTopLine),
+      playTop + minTopLine,
+      Math.max(playTop + minTopLine, maxTopLine)
+    );
     const { minX, maxX } = getHorizontalBounds(getFruitRadius(currentIndex));
     currentX = clamp(currentX || width / 2, minX, maxX);
   }
@@ -476,14 +582,35 @@
     return event.clientX - rect.left;
   }
 
+  function pointerY(event) {
+    const rect = canvas.getBoundingClientRect();
+    return event.clientY - rect.top;
+  }
+
   function handlePointerMove(event) {
     if (isGameOver || isIntroOpen) {
       return;
     }
 
+    if (event.pointerType === "touch" && activePointerId === null) {
+      return;
+    }
+
+    if (activePointerId !== null && event.pointerId !== activePointerId) {
+      return;
+    }
+
     const radius = getFruitRadius(currentIndex);
     const { minX, maxX } = getHorizontalBounds(radius);
-    currentX = clamp(pointerX(event), minX, maxX);
+    const nextX = pointerX(event);
+    if (activePointerId !== null) {
+      const dx = nextX - pointerStartX;
+      const dy = pointerY(event) - pointerStartY;
+      if (Math.hypot(dx, dy) > TAP_MOVE_THRESHOLD) {
+        pointerMoved = true;
+      }
+    }
+    currentX = clamp(nextX, minX, maxX);
   }
 
   function handlePointerDown(event) {
@@ -491,8 +618,50 @@
       return;
     }
 
+    activePointerId = event.pointerId;
+    if (canvas.setPointerCapture) {
+      canvas.setPointerCapture(activePointerId);
+    }
+    pointerStartX = pointerX(event);
+    pointerStartY = pointerY(event);
+    pointerStartAt = performance.now();
+    pointerMoved = false;
+    currentX = pointerStartX;
+  }
+
+  function handlePointerUp(event) {
+    if (isGameOver || isIntroOpen) {
+      return;
+    }
+
+    if (activePointerId === null || event.pointerId !== activePointerId) {
+      return;
+    }
+
+    if (canvas.releasePointerCapture) {
+      canvas.releasePointerCapture(activePointerId);
+    }
+
+    const elapsed = performance.now() - pointerStartAt;
+    const shouldDrop =
+      event.pointerType !== "touch" || (!pointerMoved && elapsed < TAP_TIME_MAX);
+    activePointerId = null;
     currentX = pointerX(event);
-    dropCurrent();
+    if (shouldDrop) {
+      dropCurrent();
+    }
+  }
+
+  function handlePointerCancel(event) {
+    if (activePointerId === null || event.pointerId !== activePointerId) {
+      return;
+    }
+
+    if (canvas.releasePointerCapture) {
+      canvas.releasePointerCapture(activePointerId);
+    }
+    activePointerId = null;
+    pointerMoved = false;
   }
 
   function handleKeyDown(event) {
@@ -562,6 +731,10 @@
 
   Events.on(engine, "collisionStart", (event) => {
     event.pairs.forEach((pair) => {
+      if (isGameOver) {
+        return;
+      }
+
       const { bodyA, bodyB } = pair;
 
       if (!bodyA.isFruit || !bodyB.isFruit) {
@@ -595,6 +768,10 @@
 
       score += FRUITS[next].score;
       updateScore();
+
+      if (next === FRUITS.length - 1) {
+        endGame();
+      }
     });
   });
 
@@ -664,10 +841,16 @@
   });
 
   if (restartBtn) {
-    restartBtn.addEventListener("click", resetGame);
+    restartBtn.addEventListener("click", () => {
+      if (isGameOver) {
+        startAdCountdown();
+      } else {
+        resetGame();
+      }
+    });
   }
   if (restartBtn2) {
-    restartBtn2.addEventListener("click", resetGame);
+    restartBtn2.addEventListener("click", startAdCountdown);
   }
   if (shareBtn) {
     shareBtn.addEventListener("click", generateShareImage);
@@ -688,9 +871,18 @@
   }
   canvas.addEventListener("pointermove", handlePointerMove);
   canvas.addEventListener("pointerdown", handlePointerDown);
+  canvas.addEventListener("pointerup", handlePointerUp);
+  canvas.addEventListener("pointercancel", handlePointerCancel);
   window.addEventListener("keydown", handleKeyDown);
 
   resize();
   updateScore();
   updateNextUI();
+  if (localStorage.getItem(AD_PENDING_KEY)) {
+    if (intro && !intro.hasAttribute("hidden")) {
+      intro.hidden = true;
+    }
+    isIntroOpen = false;
+    startAdCountdown();
+  }
 })();

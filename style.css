@@ -354,6 +354,36 @@ canvas {
   font-size: 16px;
 }
 
+.ad-block {
+  margin: 6px auto 18px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 244, 219, 0.95);
+  border: 1px dashed rgba(244, 156, 72, 0.5);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.ad-block img {
+  width: min(72vw, 260px);
+  border-radius: 12px;
+  box-shadow: var(--soft-shadow);
+}
+
+.ad-countdown {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(59, 47, 47, 0.7);
+}
+
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 @keyframes floatIn {
   from {
     opacity: 0;
@@ -367,7 +397,8 @@ canvas {
 
 @media (max-width: 600px) {
   .app {
-    padding: 16px 0 20px;
+    width: 100%;
+    padding: 16px 12px 20px;
     gap: 16px;
   }
 
