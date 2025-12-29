@@ -56,9 +56,10 @@
   const BASE_GRAVITY = 1.35;
   const SCALE_EPSILON = 0.02;
   const SCALE_RESET_THRESHOLD = 0.1;
-  const BUCKET_WIDTH_BASE = 330;
+  const BUCKET_WIDTH_RATIO = 0.9;
+  const BUCKET_MARGIN_RATIO = 0.02;
+  const WALL_THICKNESS_RATIO = 0.05;
   const FLOOR_INSET_BASE = 34;
-  const WALL_THICKNESS_BASE = 28;
   const DROP_GAP_BASE = 36;
   const DROP_PADDING_BASE = 8;
   const MIN_TOPLINE_BASE = 56;
@@ -112,10 +113,10 @@
   let playTop = 0;
   let playSize = BASE_WIDTH;
   let playHeight = BASE_HEIGHT;
-  let bucketWidth = BUCKET_WIDTH_BASE;
+  let bucketWidth = Math.round(BASE_WIDTH * BUCKET_WIDTH_RATIO);
   let bucketInset = 0;
   let floorInset = FLOOR_INSET_BASE;
-  let wallThickness = WALL_THICKNESS_BASE;
+  let wallThickness = Math.round(BASE_WIDTH * WALL_THICKNESS_RATIO);
   let dropGap = DROP_GAP_BASE;
   let dropPadding = DROP_PADDING_BASE;
   let minTopLine = MIN_TOPLINE_BASE;
@@ -182,13 +183,20 @@
       needsReset = Boolean(hasFruits) && delta >= SCALE_RESET_THRESHOLD;
     }
 
-    wallThickness = Math.max(12, Math.round(WALL_THICKNESS_BASE * widthScale));
-    const maxBucketWidth = Math.max(1, playSize - wallThickness * 2 - 8);
+    wallThickness = Math.max(10, Math.round(playSize * WALL_THICKNESS_RATIO));
+    const maxBucketWidth = Math.max(
+      1,
+      playSize - wallThickness * 2 - Math.round(playSize * BUCKET_MARGIN_RATIO)
+    );
     const minBucketWidth = Math.min(
       maxBucketWidth,
       maxFruitRadius * 2 + Math.round(24 * worldScale)
     );
-    bucketWidth = clamp(Math.round(BUCKET_WIDTH_BASE * widthScale), minBucketWidth, maxBucketWidth);
+    bucketWidth = clamp(
+      Math.round(playSize * BUCKET_WIDTH_RATIO),
+      minBucketWidth,
+      maxBucketWidth
+    );
     bucketInset = Math.max(0, Math.round((playSize - bucketWidth) / 2));
 
     updateNextMaxSize();
