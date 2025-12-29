@@ -51,7 +51,7 @@
   const AD_DURATION = 5;
   const AD_PENDING_KEY = "youyou-ad-pending";
   const AD_END_KEY = "youyou-ad-end";
-  const BASE_HEIGHT = 520;
+  const BASE_HEIGHT = 390;
   const BASE_WIDTH = 390;
   const BASE_GRAVITY = 1.35;
   const SCALE_EPSILON = 0.02;
@@ -571,8 +571,9 @@
       requestAnimationFrame(resize);
       return;
     }
-    width = Math.max(1, nextWidth);
-    height = Math.max(1, nextHeight);
+    const size = Math.max(1, Math.min(nextWidth, nextHeight));
+    width = size;
+    height = size;
 
     Render.setSize(render, width, height);
     Render.setPixelRatio(render, window.devicePixelRatio || 1);
