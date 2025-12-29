@@ -164,23 +164,23 @@
     }
 
     const delta = Math.abs(nextScale - worldScale);
-    if (delta < SCALE_EPSILON) {
-      return false;
+    const shouldUpdateWorld =
+      delta >= SCALE_EPSILON && !(hasFruits && delta < SCALE_RESET_THRESHOLD);
+    let needsReset = false;
+
+    if (shouldUpdateWorld) {
+      worldScale = nextScale;
+      dropGap = Math.max(16, Math.round(DROP_GAP_BASE * worldScale));
+      dropPadding = Math.max(4, Math.round(DROP_PADDING_BASE * worldScale));
+      minTopLine = Math.max(40, Math.round(MIN_TOPLINE_BASE * worldScale));
+      floorInset = Math.max(20, Math.round(FLOOR_INSET_BASE * worldScale));
+      fruitRadii = FRUITS.map((def) => Math.max(8, Math.round(def.baseRadius * worldScale)));
+      maxFruitRadius = Math.max(...fruitRadii);
+      world.gravity.y = BASE_GRAVITY * worldScale;
+      needsReset = Boolean(hasFruits) && delta >= SCALE_RESET_THRESHOLD;
     }
 
-    if (hasFruits && delta < SCALE_RESET_THRESHOLD) {
-      return false;
-    }
-
-    worldScale = nextScale;
     wallThickness = Math.max(12, Math.round(WALL_THICKNESS_BASE * widthScale));
-    dropGap = Math.max(16, Math.round(DROP_GAP_BASE * worldScale));
-    dropPadding = Math.max(4, Math.round(DROP_PADDING_BASE * worldScale));
-    minTopLine = Math.max(40, Math.round(MIN_TOPLINE_BASE * worldScale));
-    floorInset = Math.max(20, Math.round(FLOOR_INSET_BASE * worldScale));
-    fruitRadii = FRUITS.map((def) => Math.max(8, Math.round(def.baseRadius * worldScale)));
-    maxFruitRadius = Math.max(...fruitRadii);
-
     const maxBucketWidth = Math.max(1, width - wallThickness * 2 - 8);
     const minBucketWidth = Math.min(
       maxBucketWidth,
@@ -189,10 +189,9 @@
     bucketWidth = clamp(Math.round(BUCKET_WIDTH_BASE * widthScale), minBucketWidth, maxBucketWidth);
     bucketInset = Math.max(0, Math.round((width - bucketWidth) / 2));
 
-    world.gravity.y = BASE_GRAVITY * worldScale;
     updateNextMaxSize();
 
-    return Boolean(hasFruits) && delta >= SCALE_RESET_THRESHOLD;
+    return needsReset;
   }
 
   function updatePlayArea() {
