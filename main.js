@@ -56,7 +56,7 @@
   const BASE_GRAVITY = 1.35;
   const SCALE_EPSILON = 0.02;
   const SCALE_RESET_THRESHOLD = 0.1;
-  const BUCKET_WIDTH_RATIO = 0.9;
+  const BUCKET_WIDTH_RATIO = 0.8;
   const BUCKET_MARGIN_RATIO = 0.02;
   const WALL_THICKNESS_RATIO = 0.05;
   const FLOOR_INSET_BASE = 34;
@@ -205,10 +205,10 @@
   }
 
   function updatePlayArea() {
-    playSize = width;
-    playLeft = 0;
-    playTop = 0;
-    playHeight = height;
+    playSize = Math.max(1, Math.min(width, height));
+    playLeft = Math.round((width - playSize) / 2);
+    playTop = Math.round((height - playSize) / 2);
+    playHeight = playSize;
   }
 
   function getFloorY() {
@@ -586,9 +586,8 @@
       requestAnimationFrame(resize);
       return;
     }
-    const size = Math.max(1, Math.min(nextWidth, nextHeight));
-    width = size;
-    height = size;
+    width = Math.max(1, nextWidth);
+    height = Math.max(1, nextHeight);
 
     Render.setSize(render, width, height);
     Render.setPixelRatio(render, window.devicePixelRatio || 1);
