@@ -197,10 +197,10 @@
   }
 
   function updatePlayArea() {
-    playSize = Math.max(1, Math.min(width, height));
-    playLeft = Math.round((width - playSize) / 2);
-    playTop = Math.round((height - playSize) / 2);
-    playHeight = playSize;
+    playSize = width;
+    playLeft = 0;
+    playTop = 0;
+    playHeight = height;
   }
 
   function getFloorY() {
@@ -578,8 +578,9 @@
       requestAnimationFrame(resize);
       return;
     }
-    width = Math.max(1, nextWidth);
-    height = Math.max(1, nextHeight);
+    const size = Math.max(1, Math.min(nextWidth, nextHeight));
+    width = size;
+    height = size;
 
     Render.setSize(render, width, height);
     Render.setPixelRatio(render, window.devicePixelRatio || 1);
