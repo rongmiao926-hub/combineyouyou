@@ -11,8 +11,7 @@
   } = Matter;
 
   const canvas = document.getElementById("world");
-  const wrap = document.querySelector(".canvas-wrap");
-  const stage = document.querySelector(".stage");
+  const wrap = document.querySelector(".game-viewport") || document.querySelector(".canvas-wrap");
   const scoreEl = document.getElementById("score");
   const bestEl = document.getElementById("best");
   const nextBall = document.getElementById("nextBall");
@@ -548,9 +547,9 @@
     const leftX = centerX - wallOffset;
     const rightX = centerX + wallOffset;
     const wallStyle = {
-      fillStyle: "#ffe4b5",
-      strokeStyle: "#f3b15f",
-      lineWidth: 2,
+      fillStyle: "rgba(0, 0, 0, 0)",
+      strokeStyle: "rgba(0, 0, 0, 0)",
+      lineWidth: 0,
     };
     const floor = Bodies.rectangle(
       centerX,
@@ -581,17 +580,14 @@
 
   function resize() {
     setAppHeight();
-    const stageWidth = stage ? stage.clientWidth : wrap.clientWidth;
-    const stageHeight = stage ? stage.clientHeight : wrap.clientHeight;
-    if (stageWidth < 2 || stageHeight < 2) {
+    const nextWidth = wrap.clientWidth;
+    const nextHeight = wrap.clientHeight;
+    if (nextWidth < 2 || nextHeight < 2) {
       requestAnimationFrame(resize);
       return;
     }
-    const size = Math.max(1, Math.min(stageWidth, stageHeight));
-    wrap.style.width = `${size}px`;
-    wrap.style.height = `${size}px`;
-    width = size;
-    height = size;
+    width = Math.max(1, nextWidth);
+    height = Math.max(1, nextHeight);
 
     Render.setSize(render, width, height);
     Render.setPixelRatio(render, window.devicePixelRatio || 1);
@@ -740,23 +736,26 @@
     const ctx = render.context;
     const def = FRUITS[currentIndex];
     const radius = getFruitRadius(currentIndex);
-    const leftEdge = leftWall ? leftWall.bounds.max.x : bucketInset;
-    const rightEdge = rightWall ? rightWall.bounds.min.x : width - bucketInset;
+    const leftEdge = leftWall ? leftWall.bounds.max.x : playLeft + bucketInset;
+    const rightEdge = rightWall
+      ? rightWall.bounds.min.x
+      : playLeft + playSize - bucketInset;
     const floorY = getFloorY();
     const previewY = getDropY(radius);
+    const lineColor = "rgba(253, 204, 200, 0.95)";
 
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 128, 60, 0.7)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 8]);
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 4;
+    ctx.setLineDash([12, 8]);
     ctx.beginPath();
     ctx.moveTo(leftEdge, topLineY);
     ctx.lineTo(rightEdge, topLineY);
     ctx.stroke();
 
     ctx.setLineDash([]);
-    ctx.strokeStyle = "rgba(244, 156, 72, 0.75)";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(leftEdge, floorY);
     ctx.lineTo(rightEdge, floorY);
