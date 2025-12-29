@@ -12,6 +12,7 @@
 
   const canvas = document.getElementById("world");
   const wrap = document.querySelector(".canvas-wrap");
+  const stage = document.querySelector(".stage");
   const scoreEl = document.getElementById("score");
   const bestEl = document.getElementById("best");
   const nextBall = document.getElementById("nextBall");
@@ -580,14 +581,17 @@
 
   function resize() {
     setAppHeight();
-    const nextWidth = wrap.clientWidth;
-    const nextHeight = wrap.clientHeight;
-    if (nextWidth < 2 || nextHeight < 2) {
+    const stageWidth = stage ? stage.clientWidth : wrap.clientWidth;
+    const stageHeight = stage ? stage.clientHeight : wrap.clientHeight;
+    if (stageWidth < 2 || stageHeight < 2) {
       requestAnimationFrame(resize);
       return;
     }
-    width = Math.max(1, nextWidth);
-    height = Math.max(1, nextHeight);
+    const size = Math.max(1, Math.min(stageWidth, stageHeight));
+    wrap.style.width = `${size}px`;
+    wrap.style.height = `${size}px`;
+    width = size;
+    height = size;
 
     Render.setSize(render, width, height);
     Render.setPixelRatio(render, window.devicePixelRatio || 1);
