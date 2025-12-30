@@ -61,8 +61,8 @@ body {
 }
 
 .logo {
-  width: 88px;
-  height: 88px;
+  width: 68px;
+  height: 68px;
   border-radius: 22px;
   display: block;
   object-fit: cover;
@@ -79,7 +79,7 @@ body {
 }
 
 .subtitle {
-  margin: 8px 0 0;
+  margin: 2px 0 0;
   font-size: 18px;
   color: #5a5a5a;
 }
