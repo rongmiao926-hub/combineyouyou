@@ -380,7 +380,7 @@
     ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     const scoreText = score.toString();
-    const topLineScore = "5000";
+    const topLineScore = "7000";
     const textYOffset = 24;
     const topLineGap = 24;
     ctx.textBaseline = "top";
@@ -416,7 +416,7 @@
     ctx.font = "700 120px \"PingFang SC\", \"PingFang TC\", sans-serif";
     const titleWidth = ctx.measureText(titleText).width;
     const titleX = pillX + (pillW - titleWidth) / 2;
-    const titleY = pillY + (pillH - 120) / 2 - 12;
+    const titleY = pillY + (pillH - 120) / 2 - 18;
     ctx.fillText(titleText, titleX, titleY);
 
     ctx.font = "400 96px \"PingFang SC\", \"PingFang TC\", sans-serif";
@@ -426,7 +426,7 @@
     ctx.translate(baseWidth / 2, 880);
     ctx.rotate((-6 * Math.PI) / 180);
     ctx.textBaseline = "middle";
-    ctx.font = "700 350px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.font = "700 525px \"PingFang SC\", \"PingFang TC\", sans-serif";
     const bigWidth = ctx.measureText(scoreText).width;
     const bigGradient = ctx.createLinearGradient(-bigWidth / 2, 0, bigWidth / 2, 0);
     bigGradient.addColorStop(0, "#ff62df");
