@@ -324,6 +324,10 @@ canvas {
   flex-wrap: wrap;
 }
 
+.overlay-actions button {
+  font-size: 16px;
+}
+
 .share-preview {
   position: relative;
   width: min(88vw, 360px);
@@ -444,8 +448,8 @@ canvas {
 
 .ad-timer {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 4px;
+  right: 4px;
   width: 32px;
   height: 32px;
   border-radius: 50%;

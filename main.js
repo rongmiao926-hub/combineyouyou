@@ -191,7 +191,6 @@
         Math.max(8, Math.round(def.baseRadius * worldScale * FRUIT_SCALE))
       );
       maxFruitRadius = Math.max(...fruitRadii);
-      world.gravity.y = BASE_GRAVITY * worldScale;
       needsReset = Boolean(hasFruits) && delta >= SCALE_RESET_THRESHOLD;
     }
 
@@ -381,7 +380,7 @@
     ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     const scoreText = score.toString();
-    const topLineScore = "4000";
+    const topLineScore = "5000";
     const textYOffset = 24;
     const topLineGap = 24;
     ctx.textBaseline = "top";
