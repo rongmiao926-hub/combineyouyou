@@ -392,6 +392,10 @@ canvas {
   margin-top: 6px;
 }
 
+.intro-card .legend-line {
+  display: none;
+}
+
 .intro-actions {
   margin-top: 14px;
   display: flex;
@@ -452,8 +456,8 @@ canvas {
 
 .ad-timer {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 0;
+  right: 0;
   width: 32px;
   height: 32px;
   border-radius: 50%;

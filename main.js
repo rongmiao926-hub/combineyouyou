@@ -416,7 +416,7 @@
     ctx.font = "700 120px \"PingFang SC\", \"PingFang TC\", sans-serif";
     const titleWidth = ctx.measureText(titleText).width;
     const titleX = pillX + (pillW - titleWidth) / 2;
-    const titleY = pillY + (pillH - 120) / 2 - 6;
+    const titleY = pillY + (pillH - 120) / 2 - 12;
     ctx.fillText(titleText, titleX, titleY);
 
     ctx.font = "400 96px \"PingFang SC\", \"PingFang TC\", sans-serif";
