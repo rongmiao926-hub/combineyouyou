@@ -398,6 +398,10 @@ canvas {
   justify-content: center;
 }
 
+.intro-actions button {
+  font-size: 18px;
+}
+
 .intro-card .intro-close {
   position: absolute;
   top: 12px;
