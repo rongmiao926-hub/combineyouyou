@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>合成柚柚</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=34">
 </head>
 <body>
   <div class="app">
@@ -32,58 +32,59 @@
 
     <main class="stage">
       <section class="canvas-wrap" aria-label="游戏区域">
-        <div class="stage-header">
-          <span>下一个</span>
-          <div class="next-ball" id="nextBall">
-            <div class="next-ball-inner"></div>
-          </div>
-        </div>
-        <div class="game-viewport">
-          <canvas id="world"></canvas>
-          <div class="overlay" id="overlay" hidden>
-            <div class="overlay-card">
-              <h2>游戏结束</h2>
-              <p>你的分数是 <strong id="finalScore">0</strong></p>
-              <div class="ad-block" id="adBlock" hidden>
-                <img src="ad-placeholder.svg" alt="五秒广告占位">
-                <p class="ad-countdown">广告剩余 <span id="adTimer">5</span>s</p>
-              </div>
-              <div class="overlay-actions">
-                <button id="shareBtn" type="button">生成分享图</button>
-                <button id="restart2" type="button">再来一次</button>
-              </div>
-              <div class="share-preview" id="sharePreview" hidden>
-                <img id="shareImage" alt="分享图预览">
-                <p class="share-hint">长按图片保存</p>
-              </div>
+        <div class="stage-body">
+          <div class="stage-header">
+            <span>下一个</span>
+            <div class="next-ball" id="nextBall">
+              <div class="next-ball-inner"></div>
             </div>
           </div>
-          <div class="overlay intro" id="intro">
-            <aside class="tips intro-card" role="dialog" aria-modal="true" aria-labelledby="introTitle">
-              <button class="intro-close" id="introClose" type="button" aria-label="关闭提示">×</button>
-              <h2 id="introTitle">玩法提示</h2>
-              <ul>
-                <li>拖动屏幕调整落点，轻点放下水果。</li>
-                <li>相同水果相撞会合成更大的一颗。</li>
-                <li>堆叠超过虚线会触发游戏结束。</li>
-                <li>键盘：方向键移动，空格键落下。</li>
-              </ul>
-              <div class="legend">
-                <div class="legend-line"></div>
-                <span>虚线是安全线</span>
-              </div>
-              <div class="intro-actions">
-                <button id="introStart" type="button">开始游戏</button>
-              </div>
-            </aside>
+          <div class="game-viewport">
+            <canvas id="world"></canvas>
           </div>
         </div>
-        <div class="stage-footer">柚柚AI出品</div>
+        <div class="overlay" id="overlay" hidden>
+          <div class="overlay-card">
+            <h2>游戏结束</h2>
+            <p>你的分数是 <strong id="finalScore">0</strong></p>
+            <div class="ad-block" id="adBlock" hidden>
+              <img src="ad-placeholder.svg" alt="五秒广告占位">
+              <p class="ad-countdown">广告剩余 <span id="adTimer">5</span>s</p>
+            </div>
+            <div class="overlay-actions">
+              <button id="shareBtn" type="button">生成分享图</button>
+              <button id="restart2" type="button">再来一次</button>
+            </div>
+            <div class="share-preview" id="sharePreview" hidden>
+              <img id="shareImage" alt="分享图预览">
+              <p class="share-hint">长按图片保存</p>
+            </div>
+          </div>
+        </div>
+        <div class="overlay intro" id="intro">
+          <aside class="tips intro-card" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+            <button class="intro-close" id="introClose" type="button" aria-label="关闭提示">×</button>
+            <h2 id="introTitle">玩法提示</h2>
+            <ul>
+              <li>拖动屏幕调整落点，轻点放下水果。</li>
+              <li>相同水果相撞会合成更大的一颗。</li>
+              <li>堆叠超过虚线会触发游戏结束。</li>
+            </ul>
+            <div class="legend">
+              <div class="legend-line"></div>
+              <span>虚线是安全线</span>
+            </div>
+            <div class="intro-actions">
+              <button id="introStart" type="button">开始游戏</button>
+            </div>
+          </aside>
+        </div>
       </section>
+      <div class="stage-footer">柚柚AI出品</div>
     </main>
   </div>
 
   <script src="matter.min.js"></script>
-  <script src="main.js?v=10"></script>
+  <script src="main.js?v=34"></script>
 </body>
 </html>

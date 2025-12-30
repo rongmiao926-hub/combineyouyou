@@ -17,7 +17,6 @@
   const nextBall = document.getElementById("nextBall");
   const overlay = document.getElementById("overlay");
   const finalScoreEl = document.getElementById("finalScore");
-  const restartBtn = document.getElementById("restart");
   const restartBtn2 = document.getElementById("restart2");
   const shareBtn = document.getElementById("shareBtn");
   const sharePreview = document.getElementById("sharePreview");
@@ -51,13 +50,15 @@
   const AD_DURATION = 5;
   const AD_PENDING_KEY = "youyou-ad-pending";
   const AD_END_KEY = "youyou-ad-end";
-  const BASE_HEIGHT = 390;
-  const BASE_WIDTH = 390;
+  const BASE_HEIGHT = 400;
+  const BASE_WIDTH = 400;
+  const BUCKET_FIXED_HEIGHT = 400;
+  const BUCKET_FIXED_WIDTH = 320;
+  const BUCKET_OFFSET_Y = 20;
+  const FRUIT_SCALE = 1.5;
   const BASE_GRAVITY = 1.35;
   const SCALE_EPSILON = 0.02;
   const SCALE_RESET_THRESHOLD = 0.1;
-  const BUCKET_WIDTH_RATIO = 0.8;
-  const BUCKET_MARGIN_RATIO = 0.02;
   const WALL_THICKNESS_RATIO = 0.05;
   const FLOOR_INSET_BASE = 34;
   const DROP_GAP_BASE = 36;
@@ -94,7 +95,7 @@
 
   let width = 800;
   let height = 600;
-  let topLineY = 90;
+  let topLineY = 0;
   let currentX = width / 2;
   let currentIndex = randomStartIndex();
   let nextIndex = randomStartIndex();
@@ -111,16 +112,17 @@
   let worldScale = 1;
   let playLeft = 0;
   let playTop = 0;
-  let playSize = BASE_WIDTH;
-  let playHeight = BASE_HEIGHT;
-  let bucketWidth = Math.round(BASE_WIDTH * BUCKET_WIDTH_RATIO);
+  let playWidth = BUCKET_FIXED_WIDTH;
+  let playHeight = BUCKET_FIXED_HEIGHT;
+  let playSize = Math.min(BUCKET_FIXED_WIDTH, BUCKET_FIXED_HEIGHT);
+  let bucketWidth = BUCKET_FIXED_WIDTH;
   let bucketInset = 0;
   let floorInset = FLOOR_INSET_BASE;
   let wallThickness = Math.round(BASE_WIDTH * WALL_THICKNESS_RATIO);
   let dropGap = DROP_GAP_BASE;
   let dropPadding = DROP_PADDING_BASE;
   let minTopLine = MIN_TOPLINE_BASE;
-  let fruitRadii = FRUITS.map((def) => def.baseRadius);
+  let fruitRadii = FRUITS.map((def) => Math.round(def.baseRadius * FRUIT_SCALE));
   let maxFruitRadius = Math.max(...fruitRadii);
   let activePointerId = null;
   let pointerStartX = 0;
@@ -146,7 +148,10 @@
   }
 
   function getFruitRadius(index) {
-    return fruitRadii[index] || Math.round(FRUITS[index].baseRadius * worldScale);
+    return (
+      fruitRadii[index] ||
+      Math.round(FRUITS[index].baseRadius * worldScale * FRUIT_SCALE)
+    );
   }
 
   function updateNextMaxSize() {
@@ -159,8 +164,8 @@
   }
 
   function updateScale(hasFruits) {
-    const widthScale = playSize / BASE_WIDTH;
-    const heightScale = playSize / BASE_HEIGHT;
+    const widthScale = playWidth / BASE_WIDTH;
+    const heightScale = playHeight / BASE_HEIGHT;
     const nextScale = Math.min(heightScale, widthScale);
     if (!Number.isFinite(nextScale) || nextScale <= 0) {
       return false;
@@ -177,27 +182,17 @@
       dropPadding = Math.max(4, Math.round(DROP_PADDING_BASE * worldScale));
       minTopLine = Math.max(40, Math.round(MIN_TOPLINE_BASE * worldScale));
       floorInset = Math.max(20, Math.round(FLOOR_INSET_BASE * worldScale));
-      fruitRadii = FRUITS.map((def) => Math.max(8, Math.round(def.baseRadius * worldScale)));
+      fruitRadii = FRUITS.map((def) =>
+        Math.max(8, Math.round(def.baseRadius * worldScale * FRUIT_SCALE))
+      );
       maxFruitRadius = Math.max(...fruitRadii);
       world.gravity.y = BASE_GRAVITY * worldScale;
       needsReset = Boolean(hasFruits) && delta >= SCALE_RESET_THRESHOLD;
     }
 
     wallThickness = Math.max(10, Math.round(playSize * WALL_THICKNESS_RATIO));
-    const maxBucketWidth = Math.max(
-      1,
-      playSize - wallThickness * 2 - Math.round(playSize * BUCKET_MARGIN_RATIO)
-    );
-    const minBucketWidth = Math.min(
-      maxBucketWidth,
-      maxFruitRadius * 2 + Math.round(24 * worldScale)
-    );
-    bucketWidth = clamp(
-      Math.round(playSize * BUCKET_WIDTH_RATIO),
-      minBucketWidth,
-      maxBucketWidth
-    );
-    bucketInset = Math.max(0, Math.round((playSize - bucketWidth) / 2));
+    bucketWidth = playWidth;
+    bucketInset = 0;
 
     updateNextMaxSize();
 
@@ -205,10 +200,11 @@
   }
 
   function updatePlayArea() {
-    playSize = Math.max(1, Math.min(width, height));
-    playLeft = Math.round((width - playSize) / 2);
-    playTop = Math.round((height - playSize) / 2);
-    playHeight = playSize;
+    playWidth = BUCKET_FIXED_WIDTH;
+    playHeight = BUCKET_FIXED_HEIGHT;
+    playLeft = Math.round((width - playWidth) / 2);
+    playTop = Math.round((height - playHeight) / 2) - BUCKET_OFFSET_Y;
+    playSize = Math.max(1, Math.min(playWidth, playHeight));
   }
 
   function getFloorY() {
@@ -225,7 +221,7 @@
     const leftEdge = leftWall ? leftWall.bounds.max.x : playLeft + bucketInset;
     const rightEdge = rightWall
       ? rightWall.bounds.min.x
-      : playLeft + playSize - bucketInset;
+      : playLeft + playWidth - bucketInset;
     return {
       minX: leftEdge + radius,
       maxX: rightEdge - radius,
@@ -243,9 +239,6 @@
   }
 
   function setAdControlsDisabled(disabled) {
-    if (restartBtn) {
-      restartBtn.disabled = disabled;
-    }
     if (restartBtn2) {
       restartBtn2.disabled = disabled;
     }
@@ -489,6 +482,7 @@
     score = 0;
     updateScore();
     dangerStart = null;
+    lastDropAt = 0;
 
     Composite.allBodies(world).forEach((body) => {
       if (body.isFruit) {
@@ -499,6 +493,8 @@
     currentIndex = randomStartIndex();
     nextIndex = randomStartIndex();
     updateNextUI();
+    const { minX, maxX } = getHorizontalBounds(getFruitRadius(currentIndex));
+    currentX = clamp(playLeft + playWidth / 2, minX, maxX);
   }
 
   function endGame(reason = "overflow") {
@@ -541,8 +537,8 @@
     const thickness = wallThickness;
     const floorY = getFloorY();
     const innerWidth = Math.max(1, bucketWidth);
-    const centerX = playLeft + playSize / 2;
-    const centerY = playTop + playSize / 2;
+    const centerX = playLeft + playWidth / 2;
+    const centerY = playTop + playHeight / 2;
     const wallOffset = (innerWidth + thickness) / 2;
     const leftX = centerX - wallOffset;
     const rightX = centerX + wallOffset;
@@ -562,12 +558,12 @@
       }
     );
 
-    const left = Bodies.rectangle(leftX, centerY, thickness, playSize * 2, {
+    const left = Bodies.rectangle(leftX, centerY, thickness, playHeight * 2, {
       isStatic: true,
       render: wallStyle,
     });
 
-    const right = Bodies.rectangle(rightX, centerY, thickness, playSize * 2, {
+    const right = Bodies.rectangle(rightX, centerY, thickness, playHeight * 2, {
       isStatic: true,
       render: wallStyle,
     });
@@ -580,20 +576,23 @@
 
   function resize() {
     setAppHeight();
-    const nextWidth = wrap.clientWidth;
-    const nextHeight = wrap.clientHeight;
+    const rect = wrap.getBoundingClientRect();
+    const nextWidth = rect.width;
+    const nextHeight = rect.height;
     if (nextWidth < 2 || nextHeight < 2) {
       requestAnimationFrame(resize);
       return;
     }
-    width = Math.max(1, nextWidth);
-    height = Math.max(1, nextHeight);
+    width = Math.max(1, Math.round(nextWidth));
+    height = Math.max(1, Math.round(nextHeight));
 
-    Render.setSize(render, width, height);
+    render.options.width = width;
+    render.options.height = height;
     Render.setPixelRatio(render, window.devicePixelRatio || 1);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-
+    if (render.bounds) {
+      render.bounds.max.x = width;
+      render.bounds.max.y = height;
+    }
     updatePlayArea();
     const hasFruits = Composite.allBodies(world).some((body) => body.isFruit);
     const needsReset = updateScale(hasFruits);
@@ -613,7 +612,12 @@
       Math.max(playTop + minTopLine, maxTopLine)
     );
     const { minX, maxX } = getHorizontalBounds(getFruitRadius(currentIndex));
-    currentX = clamp(currentX || width / 2, minX, maxX);
+    const defaultX = playLeft + playWidth / 2;
+    if (!hasFruits && lastDropAt === 0 && activePointerId === null) {
+      currentX = defaultX;
+    }
+    const safeX = Number.isFinite(currentX) ? currentX : defaultX;
+    currentX = clamp(safeX, minX, maxX);
   }
 
   function pointerX(event) {
@@ -739,14 +743,14 @@
     const leftEdge = leftWall ? leftWall.bounds.max.x : playLeft + bucketInset;
     const rightEdge = rightWall
       ? rightWall.bounds.min.x
-      : playLeft + playSize - bucketInset;
+      : playLeft + playWidth - bucketInset;
     const floorY = getFloorY();
     const previewY = getDropY(radius);
-    const lineColor = "rgba(253, 204, 200, 0.95)";
+    const lineColor = "rgba(90, 90, 90, 0.85)";
 
     ctx.save();
     ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 2;
     ctx.setLineDash([12, 8]);
     ctx.beginPath();
     ctx.moveTo(leftEdge, topLineY);
@@ -891,15 +895,6 @@
     }
   });
 
-  if (restartBtn) {
-    restartBtn.addEventListener("click", () => {
-      if (isGameOver) {
-        startAdCountdown();
-      } else {
-        resetGame();
-      }
-    });
-  }
   if (restartBtn2) {
     restartBtn2.addEventListener("click", startAdCountdown);
   }
@@ -919,6 +914,10 @@
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", resize);
     window.visualViewport.addEventListener("scroll", resize);
+  }
+  if (window.ResizeObserver && wrap) {
+    const resizeObserver = new ResizeObserver(() => resize());
+    resizeObserver.observe(wrap);
   }
   canvas.addEventListener("pointermove", handlePointerMove);
   canvas.addEventListener("pointerdown", handlePointerDown);
