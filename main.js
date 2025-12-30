@@ -706,7 +706,9 @@
     pointerStartY = pointerY(event);
     pointerStartAt = performance.now();
     pointerMoved = false;
-    currentX = pointerStartX;
+    const radius = getFruitRadius(currentIndex);
+    const { minX, maxX } = getHorizontalBounds(radius);
+    currentX = clamp(pointerStartX, minX, maxX);
   }
 
   function handlePointerUp(event) {
@@ -733,7 +735,9 @@
     const shouldDrop =
       event.pointerType !== "touch" || (!pointerMoved && elapsed < TAP_TIME_MAX);
     activePointerId = null;
-    currentX = endX;
+    const radius = getFruitRadius(currentIndex);
+    const { minX, maxX } = getHorizontalBounds(radius);
+    currentX = clamp(endX, minX, maxX);
     if (shouldDrop) {
       dropCurrent();
     }
