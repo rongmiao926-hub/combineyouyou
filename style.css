@@ -225,7 +225,7 @@ button.ready:disabled {
   width: 100%;
   position: relative;
   /* Canvas height (bucket area height). */
-  height: 350px;
+  height: 330px;
   flex: 0 0 auto;
 }
 
