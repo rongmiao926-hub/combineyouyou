@@ -789,6 +789,7 @@
     const bucketTopY = playTop;
     const previewY = getDropY(radius);
     const lineColor = "rgba(90, 90, 90, 0.85)";
+    const bottomExtend = 2;
 
     ctx.save();
     ctx.strokeStyle = lineColor;
@@ -803,8 +804,8 @@
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(leftEdge, floorY);
-    ctx.lineTo(rightEdge, floorY);
+    ctx.moveTo(leftEdge - bottomExtend, floorY);
+    ctx.lineTo(rightEdge + bottomExtend, floorY);
     ctx.moveTo(leftEdge, bucketTopY);
     ctx.lineTo(leftEdge, floorY);
     ctx.moveTo(rightEdge, bucketTopY);
