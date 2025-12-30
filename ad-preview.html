@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>广告预览 - 合成柚柚</title>
+  <link rel="stylesheet" href="style.css?v=52">
+</head>
+<body>
+  <div class="app">
+    <main class="stage">
+      <section class="canvas-wrap" aria-label="广告预览">
+        <div class="stage-body">
+          <div class="stage-header">
+            <span>下一个</span>
+            <div class="next-ball">
+              <div class="next-ball-inner"></div>
+            </div>
+          </div>
+          <div class="game-viewport"></div>
+        </div>
+        <div class="overlay" id="overlay">
+          <div class="overlay-card">
+            <h2>游戏结束</h2>
+            <p>你的分数是 <strong>0</strong></p>
+            <div class="ad-block">
+              <div class="ad-media">
+                <img src="小广告.webp" alt="两秒广告占位">
+                <div class="ad-timer" aria-live="polite">
+                  <svg class="ad-timer-ring" viewBox="0 0 32 32" aria-hidden="true">
+                    <circle class="ad-timer-bg" cx="16" cy="16" r="14.4"></circle>
+                    <circle class="ad-timer-progress" cx="16" cy="16" r="14.4"></circle>
+                  </svg>
+                  <span>2</span>
+                </div>
+              </div>
+              <a class="button-link" href="https://youyouai.enactflow.com/" target="_blank" rel="noopener">去下载</a>
+            </div>
+            <div class="overlay-actions">
+              <button type="button">生成分享图</button>
+              <button type="button">再来一次</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const timer = document.querySelector(".ad-timer span");
+    const arc = document.querySelector(".ad-timer-progress");
+    if (timer && arc) {
+      const radius = arc.r?.baseVal?.value || 18;
+      const circumference = 2 * Math.PI * radius;
+      arc.style.strokeDasharray = `${circumference}`;
+      let remaining = 2;
+      let endAt = Date.now() + remaining * 1000;
+
+      const tick = () => {
+        const remainingMs = endAt - Date.now();
+        remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+        timer.textContent = remaining.toString();
+        const progress = Math.max(0, Math.min(1, remainingMs / 2000));
+        arc.style.strokeDashoffset = `${circumference * (1 - progress)}`;
+        if (remaining <= 0) {
+          endAt = Date.now() + 2000;
+        }
+      };
+
+      tick();
+      setInterval(tick, 200);
+    }
+  </script>
+</body>
+</html>

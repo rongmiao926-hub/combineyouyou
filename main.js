@@ -21,8 +21,10 @@
   const shareBtn = document.getElementById("shareBtn");
   const sharePreview = document.getElementById("sharePreview");
   const shareImage = document.getElementById("shareImage");
+  const shareClose = document.getElementById("shareClose");
   const adBlock = document.getElementById("adBlock");
   const adTimer = document.getElementById("adTimer");
+  const adTimerArc = document.getElementById("adTimerArc");
   const intro = document.getElementById("intro");
   const introClose = document.getElementById("introClose");
   const introStart = document.getElementById("introStart");
@@ -47,15 +49,16 @@
   const TAP_MOVE_THRESHOLD = 6;
   const TAP_TIME_MAX = 260;
   const BEST_KEY = "youzi-best-score";
-  const AD_DURATION = 5;
+  const AD_DURATION = 2;
   const AD_PENDING_KEY = "youyou-ad-pending";
   const AD_END_KEY = "youyou-ad-end";
   const BASE_HEIGHT = 400;
   const BASE_WIDTH = 400;
-  const BUCKET_FIXED_HEIGHT = 400;
-  const BUCKET_FIXED_WIDTH = 320;
+  const BUCKET_FIXED_HEIGHT = 350;
+  const BUCKET_FIXED_WIDTH = 280;
   const BUCKET_OFFSET_Y = 20;
   const FRUIT_SCALE = 1.5;
+  const NEXT_PREVIEW_MAX = 96;
   const BASE_GRAVITY = 1.35;
   const SCALE_EPSILON = 0.02;
   const SCALE_RESET_THRESHOLD = 0.1;
@@ -124,6 +127,7 @@
   let minTopLine = MIN_TOPLINE_BASE;
   let fruitRadii = FRUITS.map((def) => Math.round(def.baseRadius * FRUIT_SCALE));
   let maxFruitRadius = Math.max(...fruitRadii);
+  let nextMaxSize = 64;
   let activePointerId = null;
   let pointerStartX = 0;
   let pointerStartY = 0;
@@ -132,6 +136,7 @@
   let isAdPlaying = false;
   let adTimerId = null;
   let adEndsAt = 0;
+  let adTimerCircumference = 0;
 
   function randomStartIndex() {
     return Math.floor(Math.random() * (START_MAX_INDEX + 1));
@@ -159,8 +164,8 @@
       return;
     }
 
-    const size = Math.round(maxFruitRadius * 1.4);
-    nextBall.style.setProperty("--next-max-size", `${size}px`);
+    nextMaxSize = Math.min(Math.round(maxFruitRadius * 1.4), NEXT_PREVIEW_MAX);
+    nextBall.style.setProperty("--next-max-size", `${nextMaxSize}px`);
   }
 
   function updateScale(hasFruits) {
@@ -203,7 +208,7 @@
     playWidth = BUCKET_FIXED_WIDTH;
     playHeight = BUCKET_FIXED_HEIGHT;
     playLeft = Math.round((width - playWidth) / 2);
-    playTop = Math.round((height - playHeight) / 2) - BUCKET_OFFSET_Y;
+    playTop = 0;
     playSize = Math.max(1, Math.min(playWidth, playHeight));
   }
 
@@ -214,7 +219,8 @@
   function getDropY(radius) {
     const floorY = getFloorY();
     const maxDrop = floorY - radius - dropPadding;
-    return Math.min(topLineY + dropGap, maxDrop);
+    const topDrop = playTop + radius;
+    return Math.min(topDrop, maxDrop);
   }
 
   function getHorizontalBounds(radius) {
@@ -242,9 +248,13 @@
     if (restartBtn2) {
       restartBtn2.disabled = disabled;
     }
-    if (shareBtn) {
-      shareBtn.disabled = disabled;
+  }
+
+  function setRestartReady(ready) {
+    if (!restartBtn2) {
+      return;
     }
+    restartBtn2.classList.toggle("ready", ready);
   }
 
   function clearAdTimer() {
@@ -257,13 +267,11 @@
   function finishAd() {
     clearAdTimer();
     isAdPlaying = false;
+    adEndsAt = 0;
     localStorage.removeItem(AD_PENDING_KEY);
     localStorage.removeItem(AD_END_KEY);
-    if (adBlock) {
-      adBlock.hidden = true;
-    }
     setAdControlsDisabled(false);
-    resetGame();
+    setRestartReady(true);
   }
 
   function updateAdCountdown() {
@@ -275,6 +283,15 @@
     const remainingMs = adEndsAt - Date.now();
     const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
     adTimer.textContent = remaining.toString();
+    if (adTimerArc) {
+      const radius = adTimerArc.r?.baseVal?.value || 18;
+      if (!adTimerCircumference) {
+        adTimerCircumference = 2 * Math.PI * radius;
+        adTimerArc.style.strokeDasharray = `${adTimerCircumference}`;
+      }
+      const progress = Math.max(0, Math.min(1, remainingMs / (AD_DURATION * 1000)));
+      adTimerArc.style.strokeDashoffset = `${adTimerCircumference * (1 - progress)}`;
+    }
     if (remaining <= 0) {
       finishAd();
     }
@@ -285,6 +302,12 @@
       return;
     }
 
+    if (!localStorage.getItem(AD_PENDING_KEY)) {
+      resetGame();
+      return;
+    }
+
+    setRestartReady(false);
     if (endReason === "max") {
       resetGame();
       return;
@@ -338,8 +361,8 @@
       return;
     }
 
-    const baseWidth = 900;
-    const baseHeight = 1200;
+    const baseWidth = 1365;
+    const baseHeight = 1820;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const shareCanvas = document.createElement("canvas");
     shareCanvas.width = baseWidth * dpr;
@@ -351,63 +374,79 @@
     }
 
     ctx.scale(dpr, dpr);
-    const gradient = ctx.createLinearGradient(0, 0, 0, baseHeight);
-    gradient.addColorStop(0, "#fff1c1");
-    gradient.addColorStop(1, "#e8ffd1");
+    const gradient = ctx.createLinearGradient(0, 0, baseWidth, baseHeight);
+    gradient.addColorStop(0, "#fffdef");
+    gradient.addColorStop(1, "#f7e8ec");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, baseWidth, baseHeight);
 
-    ctx.fillStyle = "#3b2f2f";
-    ctx.font = "700 48px \"PingFang SC\", \"PingFang TC\", sans-serif";
-    ctx.fillText("合成柚柚", 60, 90);
-    ctx.font = "20px \"PingFang SC\", \"PingFang TC\", sans-serif";
-    ctx.fillStyle = "rgba(59, 47, 47, 0.7)";
-    ctx.fillText("柚柚AI出品", 60, 125);
+    const scoreText = score.toString();
+    const topLineScore = "4000";
+    const textYOffset = 24;
+    const topLineGap = 24;
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#000";
 
-    ctx.font = "600 32px \"PingFang SC\", \"PingFang TC\", sans-serif";
-    ctx.fillStyle = "#f05a28";
-    ctx.fillText(`得分 ${score}`, 60, 175);
+    let x = 67;
+    const topY = 109 + textYOffset;
+    const topLinePrefix = "没人能超过";
+    ctx.font = "700 110px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.fillText(topLinePrefix, x, topY);
+    x += ctx.measureText(topLinePrefix).width + topLineGap;
+    ctx.font = "700 180px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.fillText(topLineScore, x, topY);
+    x += ctx.measureText(topLineScore).width + topLineGap;
+    ctx.font = "700 110px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.fillText("分！", x, topY);
 
-    const cardX = 60;
-    const cardY = 210;
-    const cardW = baseWidth - 120;
-    const cardH = cardW;
-    roundRectPath(ctx, cardX, cardY, cardW, cardH, 26);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+    const line2Top = 410 + textYOffset;
+    ctx.font = "400 96px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.fillText("我在", 65, line2Top);
+
+    const pillX = 263;
+    const pillY = line2Top;
+    const pillW = 656;
+    const pillH = 155;
+    const pillR = 86;
+    ctx.fillStyle = "#ffe58f";
+    roundRectPath(ctx, pillX, pillY, pillW, pillH, pillR);
     ctx.fill();
-    ctx.strokeStyle = "rgba(244, 156, 72, 0.4)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
 
-    const innerPad = 20;
-    const innerX = cardX + innerPad;
-    const innerY = cardY + innerPad;
-    const innerW = cardW - innerPad * 2;
-    const innerH = cardH - innerPad * 2;
+    const titleText = "碰碰大柚子";
+    ctx.fillStyle = "#000";
+    ctx.font = "700 120px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    const titleWidth = ctx.measureText(titleText).width;
+    const titleX = pillX + (pillW - titleWidth) / 2;
+    const titleY = pillY + (pillH - 120) / 2 - 6;
+    ctx.fillText(titleText, titleX, titleY);
+
+    ctx.font = "400 96px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.fillText("里狂砍", pillX + pillW + 20, line2Top);
 
     ctx.save();
-    roundRectPath(ctx, innerX, innerY, innerW, innerH, 20);
-    ctx.clip();
-    const src = render.canvas;
-    const srcW = src.width || 1;
-    const srcH = src.height || 1;
-    const srcRatio = srcW / srcH;
-    const dstRatio = innerW / innerH;
-    let drawW = innerW;
-    let drawH = innerH;
-    if (srcRatio > dstRatio) {
-      drawH = innerW / srcRatio;
-    } else {
-      drawW = innerH * srcRatio;
-    }
-    const drawX = innerX + (innerW - drawW) / 2;
-    const drawY = innerY + (innerH - drawH) / 2;
-    ctx.drawImage(src, drawX, drawY, drawW, drawH);
+    ctx.translate(baseWidth / 2, 880);
+    ctx.rotate((-6 * Math.PI) / 180);
+    ctx.textBaseline = "middle";
+    ctx.font = "700 350px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    const bigWidth = ctx.measureText(scoreText).width;
+    const bigGradient = ctx.createLinearGradient(-bigWidth / 2, 0, bigWidth / 2, 0);
+    bigGradient.addColorStop(0, "#ff62df");
+    bigGradient.addColorStop(1, "#ffb63c");
+    ctx.fillStyle = bigGradient;
+    ctx.fillText(scoreText, -bigWidth / 2, 0);
     ctx.restore();
 
-    ctx.font = "18px \"PingFang SC\", \"PingFang TC\", sans-serif";
-    ctx.fillStyle = "rgba(59, 47, 47, 0.6)";
-    ctx.fillText("合成柚柚 · 长按保存分享", 60, baseHeight - 60);
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#000";
+    ctx.font = "700 240px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.fillText("分", 958, 1028);
+
+    ctx.fillStyle = "#d9d9d9";
+    ctx.fillRect(67, 1380, 280, 280);
+
+    ctx.fillStyle = "#454545";
+    ctx.font = "400 50px \"PingFang SC\", \"PingFang TC\", sans-serif";
+    ctx.fillText("扫我一决高下", 382, 1611);
 
     shareImage.src = shareCanvas.toDataURL("image/png");
     sharePreview.hidden = false;
@@ -416,7 +455,7 @@
   function updateNextUI() {
     const def = FRUITS[nextIndex];
     const radius = getFruitRadius(nextIndex);
-    const size = Math.round(radius * 1.4);
+    const size = Math.min(Math.round(radius * 1.4), nextMaxSize);
     if (!nextBall) {
       return;
     }
@@ -479,6 +518,7 @@
       adBlock.hidden = true;
     }
     setAdControlsDisabled(false);
+    setRestartReady(false);
     score = 0;
     updateScore();
     dangerStart = null;
@@ -506,9 +546,11 @@
     endReason = reason;
     overlay.hidden = false;
     resetSharePreview();
+    setRestartReady(false);
     if (reason === "overflow") {
       localStorage.setItem(AD_PENDING_KEY, "1");
       localStorage.removeItem(AD_END_KEY);
+      startAdCountdown();
     } else {
       localStorage.removeItem(AD_PENDING_KEY);
       localStorage.removeItem(AD_END_KEY);
@@ -606,11 +648,7 @@
     const maxStartRadius = getFruitRadius(START_MAX_INDEX);
     const maxTopLine = floorY - maxStartRadius - dropGap - dropPadding;
     const targetTopLine = playTop + playHeight * 0.14;
-    topLineY = clamp(
-      Math.round(targetTopLine),
-      playTop + minTopLine,
-      Math.max(playTop + minTopLine, maxTopLine)
-    );
+    topLineY = playTop;
     const { minX, maxX } = getHorizontalBounds(getFruitRadius(currentIndex));
     const defaultX = playLeft + playWidth / 2;
     if (!hasFruits && lastDropAt === 0 && activePointerId === null) {
@@ -745,16 +783,17 @@
       ? rightWall.bounds.min.x
       : playLeft + playWidth - bucketInset;
     const floorY = getFloorY();
+    const bucketTopY = playTop;
     const previewY = getDropY(radius);
     const lineColor = "rgba(90, 90, 90, 0.85)";
 
     ctx.save();
     ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     ctx.setLineDash([12, 8]);
     ctx.beginPath();
-    ctx.moveTo(leftEdge, topLineY);
-    ctx.lineTo(rightEdge, topLineY);
+    ctx.moveTo(leftEdge, bucketTopY);
+    ctx.lineTo(rightEdge, bucketTopY);
     ctx.stroke();
 
     ctx.setLineDash([]);
@@ -763,9 +802,9 @@
     ctx.beginPath();
     ctx.moveTo(leftEdge, floorY);
     ctx.lineTo(rightEdge, floorY);
-    ctx.moveTo(leftEdge, topLineY);
+    ctx.moveTo(leftEdge, bucketTopY);
     ctx.lineTo(leftEdge, floorY);
-    ctx.moveTo(rightEdge, topLineY);
+    ctx.moveTo(rightEdge, bucketTopY);
     ctx.lineTo(rightEdge, floorY);
     ctx.stroke();
 
@@ -900,6 +939,16 @@
   }
   if (shareBtn) {
     shareBtn.addEventListener("click", generateShareImage);
+  }
+  if (shareClose) {
+    shareClose.addEventListener("click", resetSharePreview);
+  }
+  if (sharePreview) {
+    sharePreview.addEventListener("click", (event) => {
+      if (event.target === sharePreview) {
+        resetSharePreview();
+      }
+    });
   }
   if (introClose) {
     introClose.addEventListener("click", closeIntro);
